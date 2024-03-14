@@ -1,4 +1,7 @@
 const database = require("../database")
+const createFolderQuery = require('../queries/createFolder');
+const checkPermissionQuery = require('../queries/checkPermission');
+const insertSubFolder = require('../queries/insertSubFolder');
 
 async function createFolder(req,res){
     const { folderName } = req.body;
@@ -10,7 +13,7 @@ async function createFolder(req,res){
             res.status(400).json({ success: false, message: 'Folder already exists' });
             return;
         }
-        const result = await database.query('INSERT INTO folders (owner, name) VALUES ($1, $2) RETURNING *', [email, folderName]);
+        const result = await database.query(createFolderQuery, [email, folderName]);
         res.json({ success: true, folder: result.rows[0] });
         
 
@@ -28,7 +31,7 @@ async function createSubfolder(req,res){
   
     try {
       // Check if the user has permission to create a subfolder in the specified parent folder
-      const permissionCheckResult = await database.query('SELECT * FROM folders WHERE name = $1 AND owner = $2', [parentFolderName, user]);
+      const permissionCheckResult = await database.query(checkPermissionQuery, [parentFolderName, user]);
   
       if (permissionCheckResult.rows.length === 0) {
         res.status(403).json({ success: false, message: 'You do not have permission to create a subfolder in the specified parent folder' });
@@ -44,7 +47,7 @@ async function createSubfolder(req,res){
       }
   
       // Insert subfolder into the database
-      const result = await database.query('INSERT INTO subfolders (owner,parent_folder, subfolder_name) VALUES ($1, $2, $3) RETURNING *', [user,parentFolderName, subfolderName]);
+      const result = await database.query(insertSubFolder, [user,parentFolderName, subfolderName]);
       res.json({ success: true, subfolder: result.rows[0] });
 
     } catch (error) {
